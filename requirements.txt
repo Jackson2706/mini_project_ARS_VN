@@ -1,0 +1,4 @@
+lazypredict
+opencv-python
+scikit-image
+joblib
