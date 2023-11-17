@@ -5,10 +5,6 @@ capture = cv2.VideoCapture("test.avi")
 
 line = 650
 
-contours_previous = []
-people_out = 0
-people_in = 0
-contours_now = []
 
 while True:
     contours_now = []
@@ -27,12 +23,12 @@ while True:
     contours_list, hierarchy = cv2.findContours(
         fgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
     )  # Find contours
-    sorted_contours = sorted(contours_list, key=cv2.contourArea, reverse=True)
-    for c in contours_list:
-        if cv2.contourArea(c) < 50000:
-            continue
 
-        (x, y, w, h) = cv2.boundingRect(c)
+    if contours_list:
+        max_c = max(contours_list, key=cv2.contourArea)
+        if cv2.contourArea(max_c) < 50000:
+            continue
+        (x, y, w, h) = cv2.boundingRect(max_c)
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
     cv2.line(frame, (0, line), (frame.shape[1], line), (0, 255, 255), 2)
