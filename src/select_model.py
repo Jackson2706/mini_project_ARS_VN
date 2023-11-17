@@ -44,7 +44,7 @@ X_test = scaler.transform(X_test)
 """
 # Create a list to store all of the models which are chosen to test, using lazypredict
 clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
-models, predictions = clf.fit(X_train, X_val, y_train, y_val)
+models, predictions = clf.fit(X_train, X_test, y_train, y_test)
 print(models)
 
 
