@@ -1,7 +1,7 @@
-from cv2 import resize, cvtColor, COLOR_BGR2GRAY
+from cv2 import COLOR_BGR2GRAY, cvtColor, resize
 from numpy import float64
-from skimage.transform import resize
 from skimage.feature import hog
+from skimage.transform import resize
 
 """
     Extract images from RGB images to 1D images with using HoG method
@@ -9,13 +9,22 @@ from skimage.feature import hog
     @return: a hoG image
 
 """
+
+
 def preprocess_img(img):
     if len(img.shape) > 2:
         img = cvtColor(img, COLOR_BGR2GRAY)
     img = img.astype(float64)
-    resized_img = resize(img, output_shape=(32,32), anti_aliasing= True) 
-    hog_features = hog(resized_img, orientations=9, pixels_per_cell=(8,8), cells_per_block=(2,2),
-                       transform_sqrt=True, block_norm="L2", feature_vector=True)
+    resized_img = resize(img, output_shape=(32, 32), anti_aliasing=True)
+    hog_features = hog(
+        resized_img,
+        orientations=9,
+        pixels_per_cell=(8, 8),
+        cells_per_block=(2, 2),
+        transform_sqrt=True,
+        block_norm="L2",
+        feature_vector=True,
+    )
     return hog_features
 
 
