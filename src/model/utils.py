@@ -1,5 +1,6 @@
 import time
 
+import matplotlib.pyplot as plt
 import torch
 from sklearn.metrics import (
     accuracy_score,
@@ -7,21 +8,32 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
+from tqdm import tqdm
 
 
 def train(
-    model, epochs, device, train_loader, val_loader, criterion, optimizer
+    model,
+    epochs,
+    device,
+    train_loader,
+    val_loader,
+    criterion,
+    optimizer,
+    notification: bool = False,
 ):
     best_accuracy = 0.0
     best_model_weights = model.state_dict()
     model = model.to(device)
+    train_loss_list = []
+    val_loss_list = []
     for epoch in range(epochs):
         model.train()
         print("*" * 50)
         print(f"Epoch {epoch+1}:")
         start_ep = time.time()
-        losses = []
-        for idx, (image, label) in enumerate(train_loader):
+        train_losses = []
+        idx = 0
+        for image, label in tqdm(train_loader):
             start = time.time()
             image, label = image.to(device), label.to(device)
             optimizer.zero_grad()
@@ -29,13 +41,15 @@ def train(
             loss = criterion(output, label)
             loss.backward()
             optimizer.step()
-            losses.append(loss.item())
+            train_losses.append(loss.item())
             end = time.time()
-            print(
-                f"\t iteration {idx}/{len(train_loader)}:\t Loss: {loss:.7f}\t Time: {(end-start):.7f}"
-            )
-        losses = sum(losses) / len(losses)
-
+            if notification:
+                print(
+                    f"\t iteration {idx}/{len(train_loader)}:\t Loss: {loss:.7f}\t Time: {(end-start):.7f}"
+                )
+            idx = idx + 1
+        train_losses = sum(train_losses) / len(train_losses)
+        train_loss_list.append(train_losses)
         print("**Validation**")
         val_losses = []
         acc_list = []
@@ -43,7 +57,8 @@ def train(
         precision_list = []
         f1_score_list = []
         model.eval()
-        for idx, (image, label) in enumerate(val_loader):
+        idx = 0
+        for image, label in tqdm(val_loader):
             image, label = image.to(device), label.to(device)
             output = model(image)
             loss = criterion(output, label)
@@ -63,9 +78,14 @@ def train(
             precision_list.append(precision)
             recall_list.append(recall)
             f1_score_list.append(f1)
-            print(
-                f"\t Iteration {idx+1}/{len(val_loader)}: \t accuracy: {acc:.7f}\t precision: {precision:.7f}\t recall: {recall:.7f}\t f1: {f1:.7f}"
-            )
+
+            if notification:
+                print(
+                    f"\t Iteration {idx+1}/{len(val_loader)}: \t accuracy: {acc:.7f}\t precision: {precision:.7f}\t recall: {recall:.7f}\t f1: {f1:.7f}"
+                )
+            idx = idx + 1
+        val_losses = sum(val_losses) / len(val_losses)
+        val_loss_list.append(val_losses)
         accuracy = sum(acc_list) / len(acc_list)
         precision = sum(precision_list) / len(precision_list)
         recall = sum(recall_list) / len(recall_list)
@@ -75,13 +95,19 @@ def train(
             best_accuracy = accuracy
             best_model_weights = model.state_dict()
         end_ep = time.time()
-        print(
-            f"Espoch {epoch + 1}/{epochs}: \ttrain_loss: {losses:.7f} \t time: {(end_ep-start_ep):.7f}\n accuracy: {accuracy:.7f}\t precision {precision:.7f}\t recall: {recall:.7f}\t f1 score: {f1:.7f}"
-        )
-    return model.state_dict(), best_model_weights
+        if notification:
+            print(
+                f"Espoch {epoch + 1}/{epochs}: \ttrain_loss: {train_losses:.7f} \t time: {(end_ep-start_ep):.7f}\n accuracy: {accuracy:.7f}\t precision {precision:.7f}\t recall: {recall:.7f}\t f1 score: {f1:.7f}"
+            )
+    return (
+        model.state_dict(),
+        best_model_weights,
+        train_loss_list,
+        val_loss_list,
+    )
 
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, notification: bool = False):
     with torch.no_grad():
         print("*" * 50)
         acc_list = []
@@ -89,7 +115,8 @@ def test(model, device, test_loader):
         precision_list = []
         f1_score_list = []
 
-        for idx, (image, label) in enumerate(test_loader):
+        idx = 0
+        for image, label in tqdm(test_loader):
             image, label = image.to(device), label.to(device)
             output = model(image)
 
@@ -107,9 +134,11 @@ def test(model, device, test_loader):
             precision_list.append(precision)
             recall_list.append(recall)
             f1_score_list.append(f1)
-            print(
-                f"Iteration {idx+1}/{len(test_loader)}: \t accuracy: {acc:.7f}\t precision: {precision:.7f}\t recall: {recall:.7f}\t f1: {f1:.7f}"
-            )
+            if notification:
+                print(
+                    f"Iteration {idx+1}/{len(test_loader)}: \t accuracy: {acc:.7f}\t precision: {precision:.7f}\t recall: {recall:.7f}\t f1: {f1:.7f}"
+                )
+            idx = idx + 1
         print("*" * 25)
         accuracy = sum(acc_list) / len(acc_list)
         precision = sum(precision_list) / len(precision_list)
@@ -118,3 +147,24 @@ def test(model, device, test_loader):
         print(
             f"Test phase: \t accuracy: {accuracy:.7f}\t precision {precision:.7f}\t recall: {recall:.7f}\t f1 score: {f1:.7f}"
         )
+    return {
+        "Accuracy": accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-Score": f1,
+    }
+
+
+def plot_loss(train_loss, valid_loss, save_path):
+    # Tạo một danh sách thể hiện số epoch (vòng lặp huấn luyện)
+    epochs = range(1, len(train_loss) + 1)
+
+    # Vẽ đồ thị train loss và validation loss
+    plt.plot(epochs, train_loss, "b", label="Train Loss")
+    plt.plot(epochs, valid_loss, "r", label="Validation Loss")
+    plt.title("Train and Validation Loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.xticks(epochs, rotation=45)
+    plt.legend()
+    plt.savefig(save_path, format="svg", bbox_inches="tight")

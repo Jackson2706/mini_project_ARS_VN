@@ -24,7 +24,7 @@ encode_label = {
 
 
 class MyDataset(Dataset):
-    def __init__(self, dataset_dir="ARS-1", phase="train", hog=True):
+    def __init__(self, dataset_dir="ARS-4", phase="train", hog=True):
         self.dataset_dir = dataset_dir
         self.phase = phase
         self.hog = hog
@@ -44,7 +44,7 @@ class MyDataset(Dataset):
             image = preprocess_img(object_image)
             image = torch.FloatTensor(image)
         else:
-            image = resize(object_image, (64, 64))
+            image = resize(object_image, (256, 256))
             image = torch.from_numpy(image[:, :, (2, 1, 0)]).permute(2, 0, 1)
             image = image.to(torch.float32)
         label = encode_label[label]
