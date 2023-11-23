@@ -1,5 +1,0 @@
-lazypredict
-opencv-python==4.7.0
-scikit-image
-joblib
-roboflow
